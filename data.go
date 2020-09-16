@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -89,6 +92,8 @@ func (d *DataFile) Read() (*CommandRecord, error) {
 }
 
 // Write a record to the end of the file.
+//
+// This will change the seek location in the file.
 func (d *DataFile) Write(record *CommandRecord) error {
 	origOffset, err := d.file.Seek(0, io.SeekEnd)
 	if err != nil {
@@ -98,7 +103,7 @@ func (d *DataFile) Write(record *CommandRecord) error {
 	if err != nil {
 		return err
 	}
-	if _, err := d.file.Write(data); err != nil {
+	if _, err := d.file.Write(append(data, '\n')); err != nil {
 		// Attempt to revert the partial write, although
 		// there's no guarantee this will work, and the
 		// file may become corrupted.
@@ -107,6 +112,106 @@ func (d *DataFile) Write(record *CommandRecord) error {
 		return err
 	}
 	return nil
+}
+
+// Delete deletes the record with the given ID.
+//
+// This will change the seek location in the file.
+//
+// If the delete operation fails, the file may be
+// inadvertently closed, in which case future operations
+// on d will fail.
+func (d *DataFile) Delete(id string) error {
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+	tmpPath := filepath.Join(tmpDir, "history.tmp")
+	tmpFile, err := os.Create(tmpPath)
+	if err != nil {
+		return err
+	}
+	defer tmpFile.Close()
+
+	d.Reset()
+	for {
+		record, err := d.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		if record.ID == id {
+			continue
+		}
+		encoded, err := json.Marshal(record)
+		if err != nil {
+			return err
+		}
+		if _, err := tmpFile.Write(append(encoded, '\n')); err != nil {
+			return err
+		}
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	oldFileName := d.file.Name()
+	d.file.Close()
+	if err := os.Rename(tmpPath, oldFileName); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(oldFileName, os.O_RDWR|os.O_SYNC, 0)
+	if err != nil {
+		return err
+	}
+	d.file = file
+	return nil
+}
+
+// GenerateUniqueID generates a random ID that is not
+// already used by a record.
+//
+// This will change the seek location in the file.
+func (d *DataFile) GenerateUniqueID() (string, error) {
+	ids := map[string]bool{}
+	d.Reset()
+	for {
+		entry, err := d.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
+		}
+		ids[entry.ID] = true
+	}
+	for i := 0; i < 1e6; i++ {
+		entry := strconv.FormatInt(int64(i), 36)
+		if !ids[entry] {
+			return entry, nil
+		}
+	}
+	return "", errors.New("exhausted space of possible UIDs")
+}
+
+// CanUseID returns true if the ID is not already in use
+// by a record.
+//
+// This will change the seek location in the file.
+func (d *DataFile) CanUseID(id string) (bool, error) {
+	d.Reset()
+	for {
+		entry, err := d.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return false, err
+		}
+		if entry.ID == id {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (d *DataFile) Close() error {

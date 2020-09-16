@@ -1,4 +1,6 @@
 github.com/gofrs/flock v0.8.0 h1:MSdYClljsF3PbENUUEx85nkWfJSGfzYI9yEBZOJz6CY=
 github.com/gofrs/flock v0.8.0/go.mod h1:F1TvTiK9OcQqauNUHlbJvyl9Qa1QvF/gOUDKA14jxHU=
+github.com/unixpickle/essentials v1.1.0 h1:kJ/mU3MfmmSfuU8zyplwkup60lKV9+ucqZC+hR1GgVU=
+github.com/unixpickle/essentials v1.1.0/go.mod h1:dQ1idvqrgrDgub3mfckQm7osVPzT3u9rB6NK/LEhmtQ=
 golang.org/x/sys v0.0.0-20200916084744-dbad9cb7cb7a h1:chkwkn8HYWVtTE5DCQNKYlkyptadXYY0+PuyaVdyMo4=
 golang.org/x/sys v0.0.0-20200916084744-dbad9cb7cb7a/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

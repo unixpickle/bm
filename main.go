@@ -29,6 +29,7 @@ func main() {
 	cmds := map[byte]func(*DataFile, bool, []string){
 		's': CommandSave,
 		'c': CommandSaveAndRun,
+		'a': CommandAll,
 		'q': CommandQuery,
 		'r': CommandQueryAndRun,
 		'd': CommandDelete,
@@ -56,6 +57,7 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 		essentials.Must(err)
 		if !ok {
 			fmt.Fprintln(os.Stderr, "cannot use name:", id)
+			os.Exit(1)
 		}
 	} else {
 		var err error
@@ -80,6 +82,18 @@ func CommandSaveAndRun(d *DataFile, byName bool, args []string) {
 	essentials.Must(Run(record))
 }
 
+func CommandAll(d *DataFile, byName bool, args []string) {
+	records, err := MatchRecords(d, byName, args)
+	essentials.Must(err)
+
+	if len(records) == 0 {
+		fmt.Fprintln(os.Stderr, "no records found")
+		os.Exit(1)
+	} else {
+		printRecords(records)
+	}
+}
+
 func CommandQuery(d *DataFile, byName bool, args []string) {
 	records, err := MatchRecords(d, byName, args)
 	essentials.Must(err)
@@ -92,6 +106,10 @@ func CommandQuery(d *DataFile, byName bool, args []string) {
 	if len(records) > MaxMatches {
 		records = records[len(records)-MaxMatches:]
 	}
+	printRecords(records)
+}
+
+func printRecords(records []*CommandRecord) {
 	maxIDLen := 0
 	for _, r := range records {
 		maxIDLen = essentials.MaxInt(maxIDLen, len(r.ID))
@@ -99,9 +117,9 @@ func CommandQuery(d *DataFile, byName bool, args []string) {
 	for _, r := range records {
 		paddedID := r.ID
 		for len(paddedID) < maxIDLen {
-			paddedID += " "
+			paddedID = " " + paddedID
 		}
-		fmt.Println(" " + paddedID + " " + r.Command)
+		fmt.Println(" " + paddedID + "  " + r.Command)
 	}
 }
 
@@ -112,6 +130,7 @@ func CommandQueryAndRun(d *DataFile, byName bool, args []string) {
 
 func CommandDelete(d *DataFile, byName bool, args []string) {
 	record := MustMatchRecord(d, byName, args)
+	fmt.Fprintln(os.Stderr, "deleting record '"+record.ID+"' with command: "+record.Command)
 	essentials.Must(d.Delete(record.ID))
 }
 
@@ -135,6 +154,7 @@ func DieUsage() {
 	fmt.Fprintln(os.Stderr, "    rn [query]          lookup and run a command by name")
 	fmt.Fprintln(os.Stderr, "    d  [query]          delete a command by content")
 	fmt.Fprintln(os.Stderr, "    dn [query]          delete a command by name")
+	fmt.Fprintln(os.Stderr, "    a  [query]          list all saved commands in order")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(1)
 }

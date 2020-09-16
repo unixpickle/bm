@@ -79,6 +79,7 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 
 func CommandSaveAndRun(d *DataFile, byName bool, args []string) {
 	record := commandSave(d, byName, args)
+	d.Close()
 	essentials.Must(Run(record))
 }
 
@@ -125,7 +126,8 @@ func printRecords(records []*CommandRecord) {
 
 func CommandQueryAndRun(d *DataFile, byName bool, args []string) {
 	record := MustMatchRecord(d, byName, args)
-	Run(record)
+	d.Close()
+	essentials.Must(Run(record))
 }
 
 func CommandDelete(d *DataFile, byName bool, args []string) {

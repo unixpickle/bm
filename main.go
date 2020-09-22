@@ -29,6 +29,7 @@ func main() {
 	cmds := map[byte]func(*DataFile, bool, []string){
 		's': CommandSave,
 		'c': CommandSaveAndRun,
+		'x': CommandSaveAndRunOverwrite,
 		'a': CommandAll,
 		'q': CommandQuery,
 		'r': CommandQueryAndRun,
@@ -78,6 +79,20 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 }
 
 func CommandSaveAndRun(d *DataFile, byName bool, args []string) {
+	record := commandSave(d, byName, args)
+	d.Close()
+	essentials.Must(Run(record))
+}
+
+func CommandSaveAndRunOverwrite(d *DataFile, byName bool, args []string) {
+	if !byName {
+		DieUnknownCommand()
+	}
+	ok, err := d.CanUseID(args[0])
+	essentials.Must(err)
+	if !ok {
+		essentials.Must(d.Delete(args[0]))
+	}
 	record := commandSave(d, byName, args)
 	d.Close()
 	essentials.Must(Run(record))
@@ -150,6 +165,7 @@ func DieUsage() {
 	fmt.Fprintln(os.Stderr, "    sn <name> [args]    save a named command")
 	fmt.Fprintln(os.Stderr, "    c  [args]           save and run an un-named command")
 	fmt.Fprintln(os.Stderr, "    cn <name> [args]    save and run a named command")
+	fmt.Fprintln(os.Stderr, "    xn <name> [args]    like cn, but may replace an existing command")
 	fmt.Fprintln(os.Stderr, "    q  [query]          search saved commands by content")
 	fmt.Fprintln(os.Stderr, "    qn [query]          search saved commands by name")
 	fmt.Fprintln(os.Stderr, "    r  [query]          lookup and run a command by content")

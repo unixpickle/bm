@@ -11,6 +11,10 @@ import (
 
 const (
 	MaxMatches = 10
+
+	// Escape codes to color code the output of a list.
+	ListIDColor    = "\033[32m\033[1m"
+	ListResetColor = "\033[0m"
 )
 
 func main() {
@@ -130,12 +134,26 @@ func printRecords(records []*CommandRecord) {
 	for _, r := range records {
 		maxIDLen = essentials.MaxInt(maxIDLen, len(r.ID))
 	}
-	for _, r := range records {
+	info, err := os.Stdout.Stat()
+	essentials.Must(err)
+	isTTY := (info.Mode() & os.ModeCharDevice) != 0
+	for i, r := range records {
+		if isTTY && i == 0 {
+			// Space things out to make them easier to read.
+			fmt.Println()
+		}
 		paddedID := r.ID
 		for len(paddedID) < maxIDLen {
 			paddedID = " " + paddedID
 		}
+		if isTTY {
+			paddedID = ListIDColor + paddedID + ListResetColor
+		}
 		fmt.Println(" " + paddedID + "  " + r.Command)
+		if isTTY {
+			// Space things out to make them easier to read.
+			fmt.Println()
+		}
 	}
 }
 

@@ -32,6 +32,7 @@ func main() {
 	byName := len(commandName) == 2
 	cmds := map[byte]func(*DataFile, bool, []string){
 		's': CommandSave,
+		'u': CommandUpdate,
 		'c': CommandSaveAndRun,
 		'x': CommandSaveAndRunOverwrite,
 		'a': CommandAll,
@@ -50,6 +51,18 @@ func main() {
 }
 
 func CommandSave(d *DataFile, byName bool, args []string) {
+	commandSave(d, byName, args)
+}
+
+func CommandUpdate(d *DataFile, byName bool, args []string) {
+	if !byName {
+		DieUnknownCommand()
+	}
+	ok, err := d.CanUseID(args[0])
+	essentials.Must(err)
+	if !ok {
+		essentials.Must(d.Delete(args[0]))
+	}
 	commandSave(d, byName, args)
 }
 
@@ -181,6 +194,7 @@ func DieUsage() {
 	fmt.Fprintln(os.Stderr, "Sub-command usage:")
 	fmt.Fprintln(os.Stderr, "    s  [args]           save an un-named command")
 	fmt.Fprintln(os.Stderr, "    sn <name> [args]    save a named command")
+	fmt.Fprintln(os.Stderr, "    un <name> [args]    like sn, but may replace an existing command")
 	fmt.Fprintln(os.Stderr, "    c  [args]           save and run an un-named command")
 	fmt.Fprintln(os.Stderr, "    cn <name> [args]    save and run a named command")
 	fmt.Fprintln(os.Stderr, "    xn <name> [args]    like cn, but may replace an existing command")

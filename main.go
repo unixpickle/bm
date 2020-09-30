@@ -46,6 +46,11 @@ func main() {
 		d, err := NewDataFile()
 		essentials.Must(err)
 		defer d.Close()
+		if byName && len(os.Args) == 2 {
+			fmt.Fprintln(os.Stderr, "no name specified")
+			fmt.Fprintln(os.Stderr)
+			DieUsage()
+		}
 		fn(d, byName, os.Args[2:])
 	} else {
 		DieUnknownCommand()

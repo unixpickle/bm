@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -83,9 +85,16 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 		essentials.Must(err)
 	}
 
+	commandStr := strings.Join(args, " ")
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "No arguments provided. Reading command from stdin.")
+		fmt.Fprintln(os.Stderr)
+		commandStr = readStdin()
+	}
+
 	record := &CommandRecord{
 		ID:      id,
-		Command: strings.Join(args, " "),
+		Command: commandStr,
 		Date:    time.Now(),
 	}
 	essentials.Must(d.Write(record))
@@ -93,6 +102,14 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 	fmt.Fprintln(os.Stderr, "created record with ID", record.ID)
 
 	return record
+}
+
+func readStdin() string {
+	data, err := ioutil.ReadAll(os.Stdin)
+	if err != nil && err != io.EOF {
+		essentials.Die(err)
+	}
+	return strings.TrimSpace(string(data))
 }
 
 func CommandSaveAndRun(d *DataFile, byName bool, args []string) {

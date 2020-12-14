@@ -58,7 +58,7 @@ func main() {
 }
 
 func CommandSave(d *DataFile, byName bool, args []string) {
-	commandSave(d, byName, args)
+	commandSave(d, byName, args, false)
 }
 
 func CommandUpdate(d *DataFile, byName bool, args []string) {
@@ -70,10 +70,10 @@ func CommandUpdate(d *DataFile, byName bool, args []string) {
 	if !ok {
 		essentials.Must(d.Delete(args[0]))
 	}
-	commandSave(d, byName, args)
+	commandSave(d, byName, args, !ok)
 }
 
-func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
+func commandSave(d *DataFile, byName bool, args []string, updated bool) *CommandRecord {
 	var id string
 	if byName {
 		id = args[0]
@@ -104,7 +104,11 @@ func commandSave(d *DataFile, byName bool, args []string) *CommandRecord {
 	}
 	essentials.Must(d.Write(record))
 
-	fmt.Fprintln(os.Stderr, "created record with ID", record.ID)
+	if updated {
+		fmt.Fprintln(os.Stderr, "updated record with ID", record.ID)
+	} else {
+		fmt.Fprintln(os.Stderr, "created record with ID", record.ID)
+	}
 
 	return record
 }
@@ -118,7 +122,7 @@ func readStdin() string {
 }
 
 func CommandSaveAndRun(d *DataFile, byName bool, args []string) {
-	record := commandSave(d, byName, args)
+	record := commandSave(d, byName, args, false)
 	d.Close()
 	essentials.Must(Run(record))
 }
@@ -132,7 +136,7 @@ func CommandSaveAndRunOverwrite(d *DataFile, byName bool, args []string) {
 	if !ok {
 		essentials.Must(d.Delete(args[0]))
 	}
-	record := commandSave(d, byName, args)
+	record := commandSave(d, byName, args, !ok)
 	d.Close()
 	essentials.Must(Run(record))
 }
